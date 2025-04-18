@@ -1,20 +1,49 @@
-#! /bin/bash
+#!/bin/bash
+# Generalized Ukubona bootstrap script
+# Usage: bash setup.sh <TEMPLATE_NAME> <TARGET_NAME>
 
-# setup tidy work directory
-read -p "Enter your root directory (default: /documents/rhythm): " ROOT_DIR
-ROOT_DIR=${ROOT_DIR:-/documents/rhythm}
+set -e
 
-read -p "Enter the name of the subdirectory that archives .sh scripts (default: new): " SUBDIR_NAME
-SUBDIR_NAME=${SUBDIR_NAME:-new}
+# Input from arguments
+TEMPLATE_NAME=$1
+TARGET_NAME=$2
 
-cd ~/$ROOT_DIR && rm -rf * && git clone https://github.com/abikesa/workflow && mv workflow $SUBDIR_NAME && $SUBDIR_NAME/setup_myenv.sh && source myenv/bin/activate
+# Check if arguments are missing
+if [[ -z "$TEMPLATE_NAME" || -z "$TARGET_NAME" ]]; then
+  echo "❗ Usage: bash setup.sh <TEMPLATE_REPO_NAME> <TARGET_REPO_NAME>"
+  echo "👉 Example: bash setup.sh dummy birthday-special"
+  exit 1
+fi
 
-# template as starting point
-read -p "Enter template GitHub repository name (default: haydn): " REPO_NAME
-REPO_NAME=${REPO_NAME:-haydn}
+# Constants
+PYTHON_VERSION="python3.11"
+VENV_NAME="myenv"
+TEMPLATE_REPO="https://github.com/abikesa/$TEMPLATE_NAME.git"
+TARGET_REPO="https://github.com/abikesa/$TARGET_NAME.git"
+REQUIREMENTS_PATH="template-repo/kitabo/ensi/requirements.txt"
 
-git clone https://github.com/abikesa/$REPO_NAME
-mv $REPO_NAME local
-cd local/kitabo/ensi
-echo "Make updates to $ROOT_DIR/local"
+echo "�� Creating virtual environment..."
+$PYTHON_VERSION -m venv "$VENV_NAME"
+
+echo "✨ Activating virtual environment..."
+source "$VENV_NAME/bin/activate"
+
+echo "🔗 Cloning template repo: $TEMPLATE_REPO"
+git clone "$TEMPLATE_REPO" template-repo
+
+echo "📘 Cloning target repo: $TARGET_REPO"
+git clone "$TARGET_REPO" "$TARGET_NAME"
+
+echo "📦 Installing requirements from $REQUIREMENTS_PATH..."
+pip install --upgrade pip
+pip install -r "$REQUIREMENTS_PATH"
+
+echo "📚 Installing Jupyter Book and ghp-import..."
+pip install jupyter-book ghp-import
+
+echo "🧬 Copying template files into $TARGET_NAME/..."
+cp -r template-repo/* "$TARGET_NAME/"
+
+echo "✅ All done."
+echo "➡️ To activate later: source $VENV_NAME/bin/activate"
 
